@@ -1,0 +1,226 @@
+from flask import Flask, request, redirect, render_template_string
+import sqlite3
+
+app = Flask(__name__)
+
+# Database Initialization
+def init_db():
+    conn = sqlite3.connect("property.db")
+    cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS properties (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_type TEXT,
+        property_type TEXT,
+        area INTEGER,
+        place TEXT,
+        budget_range TEXT,
+        property_value REAL,
+        owner_name TEXT,
+        contact TEXT
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# Home Page
+@app.route("/")
+def home():
+    conn = sqlite3.connect("property.db")
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM properties")
+    properties = cur.fetchall()
+
+    conn.close()
+
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Chennai Property Hub</title>
+        <style>
+            body{
+                font-family:Arial;
+                margin:40px;
+                background:#f4f4f4;
+            }
+            h1{
+                color:#003366;
+            }
+            table{
+                width:100%;
+                border-collapse:collapse;
+                background:white;
+            }
+            th,td{
+                border:1px solid #ddd;
+                padding:10px;
+                text-align:center;
+            }
+            th{
+                background:#003366;
+                color:white;
+            }
+            form{
+                background:white;
+                padding:20px;
+                margin-bottom:20px;
+            }
+            input,select{
+                width:100%;
+                padding:8px;
+                margin:5px 0;
+            }
+            button{
+                background:#003366;
+                color:white;
+                padding:10px;
+                border:none;
+                width:100%;
+            }
+        </style>
+    </head>
+    <body>
+
+    <h1>Chennai Property Buying & Rental SaaS</h1>
+
+    <form method="POST" action="/add">
+
+        <label>Buy / Rent</label>
+        <select name="transaction_type">
+            <option>Buy</option>
+            <option>Rent</option>
+        </select>
+
+        <label>Property Type</label>
+        <select name="property_type">
+            <option>Residential</option>
+            <option>Commercial</option>
+        </select>
+
+        <label>Area (Sq.Ft)</label>
+        <input type="number" name="area" required>
+
+        <label>Place</label>
+        <select name="place">
+            <option>Anna Nagar</option>
+            <option>T Nagar</option>
+            <option>Velachery</option>
+            <option>Adyar</option>
+            <option>Tambaram</option>
+            <option>Porur</option>
+            <option>OMR</option>
+            <option>Sholinganallur</option>
+        </select>
+
+        <label>Budget Range</label>
+        <input type="text" name="budget_range"
+               placeholder="10 Lakhs - 1 Crore">
+
+        <label>Property Value</label>
+        <input type="number" step="0.01"
+               name="property_value" required>
+
+        <label>Owner Name</label>
+        <input type="text" name="owner_name" required>
+
+        <label>Contact Number</label>
+        <input type="text" name="contact" required>
+
+        <button type="submit">Add Property</button>
+    </form>
+
+    <h2>Available Properties</h2>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Buy/Rent</th>
+            <th>Type</th>
+            <th>Area</th>
+            <th>Place</th>
+            <th>Range</th>
+            <th>Property Value</th>
+            <th>Owner</th>
+            <th>Contact</th>
+        </tr>
+
+        {% for p in properties %}
+        <tr>
+            <td>{{p[0]}}</td>
+            <td>{{p[1]}}</td>
+            <td>{{p[2]}}</td>
+            <td>{{p[3]}}</td>
+            <td>{{p[4]}}</td>
+            <td>{{p[5]}}</td>
+            <td>₹ {{p[6]}}</td>
+            <td>{{p[7]}}</td>
+            <td>{{p[8]}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    </body>
+    </html>
+    """
+
+    return render_template_string(
+        html,
+        properties=properties
+    )
+
+
+# Add Property
+@app.route("/add", methods=["POST"])
+def add_property():
+
+    transaction_type = request.form["transaction_type"]
+    property_type = request.form["property_type"]
+    area = request.form["area"]
+    place = request.form["place"]
+    budget_range = request.form["budget_range"]
+    property_value = request.form["property_value"]
+    owner_name = request.form["owner_name"]
+    contact = request.form["contact"]
+
+    conn = sqlite3.connect("property.db")
+    cur = conn.cursor()
+
+    cur.execute("""
+    INSERT INTO properties
+    (
+        transaction_type,
+        property_type,
+        area,
+        place,
+        budget_range,
+        property_value,
+        owner_name,
+        contact
+    )
+    VALUES (?,?,?,?,?,?,?,?)
+    """,
+    (
+        transaction_type,
+        property_type,
+        area,
+        place,
+        budget_range,
+        property_value,
+        owner_name,
+        contact
+    ))
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
